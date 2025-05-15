@@ -1,0 +1,58 @@
+
+import pandas as pd
+import numpy as np
+import nltk
+import re
+import string
+import matplotlib.pyplot as plt
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
+
+# Download stopwords for text processing
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+
+# Load dataset (Ensure you have a CSV file with 'text' and 'label' columns)
+df = pd.read_csv('fake_news_dataset.csv')  # Replace with actual dataset path
+
+# Function to clean and preprocess text data
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r'\d+', '', text)  # Remove numbers
+    text = text.translate(str.maketrans('', '', string.punctuation))  # Remove punctuation
+    words = text.split()
+    words = [word for word in words if word not in stopwords.words('english')]
+    return ' '.join(words)
+
+# Apply text preprocessing
+df['clean_text'] = df['text'].apply(clean_text)
+
+# Convert text into numerical features using TF-IDF
+vectorizer = TfidfVectorizer(max_features=5000)
+X = vectorizer.fit_transform(df['clean_text'])
+y = df['label']  # Ensure dataset contains a 'label' column (0 = Real, 1 = Fake)
+
+# Split dataset into training/testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a Naïve Bayes classifier
+model = MultinomialNB()
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate model performance
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {accuracy:.2f}")
+
+# Plot model accuracy as a bar chart
+plt.figure(figsize=(5, 4))
+plt.bar(['Model Accuracy'], [accuracy * 100], color='skyblue')
+plt.ylabel('Accuracy (%)')
+plt.title('Fake News Detection Model Performance')
+plt.ylim(0, 100)
+plt.text(0, accuracy * 100 + 2, f"{accuracy * 100:.2f}%", ha='center')
+plt.show()
